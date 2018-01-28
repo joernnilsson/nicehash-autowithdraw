@@ -3,7 +3,7 @@ Automatically withdraws BTC funds from your Nicehash wallet to a Coinbase accoun
 
 
 ### Auth
-The script needs a cookie from Nicehash for authentication. Log into Nicehash and user the [cookie.txt](https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg?hl=en) extension for Chrome to save cookie.txt to the data folder.
+The script needs a cookie from Nicehash for authentication. Log into Nicehash and use the [cookie.txt](https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg?hl=en) extension for Chrome to save cookie.txt to the data folder.
 
 ### Run
 	COINBASE_ACCOUNT=coinbase-emai@address.com python3 auto-withdraw.py
