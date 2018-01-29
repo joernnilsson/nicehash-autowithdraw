@@ -8,7 +8,7 @@ coinbase_account = os.environ['COINBASE_ACCOUNT']
 jar = "data/cookies.txt"
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
     handlers=[
         logging.FileHandler("data/nicehash-autowithdraw.log"),
