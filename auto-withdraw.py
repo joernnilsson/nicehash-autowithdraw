@@ -8,7 +8,7 @@ coinbase_account = os.environ['COINBASE_ACCOUNT']
 jar = "data/cookies.txt"
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
     handlers=[
         logging.FileHandler("data/nicehash-autowithdraw.log"),
@@ -82,10 +82,11 @@ def spin():
         wd_data = '{"address":"'+coinbase_account+'","amount":"'+str(nh_balance)+'","type":1}'
         logger.debug("Making withdrawl with data: %s", wd_data)
         logger.info("Transferring %f BTC, to coinbase account: %s", nh_balance, coinbase_account)
-        wd_resp = requests.post('https://www.nicehash.com/siteapi/wallet/withdraw_create', headers=wd_headers, cookies=cj, data=wd_data)
+        wd_resp = requests.post('https://www.nicehash.com/siteapi/wallet/withdraw_create', headers=wd_headers, cookies=cd, data=wd_data)
         
         if(wd_resp.status_code != 200):
-            logger.error("Nicehash withdraw returned status %i", response.status_code)
+            logger.error("Nicehash withdraw returned status %i", wd_resp.status_code)
+            logger.debug(wd_resp.text)
             raise Exception("Nicehash withdraw status not 200")
 
         if("error_code" in wd_resp.json()):
