@@ -60,6 +60,11 @@ def spin():
 
     #print(response.json())
 
+    if('confirmed' not in response.json()):
+        print(response.json())
+        logger.error("Error getting confimed balance")
+        raise Exception("Error getting confimed balance")
+    
 
     nh_balance = float(response.json()['confirmed'])
     logger.info("Nicehash confirmed balance: %f mBTC", nh_balance*1000)
