@@ -7,8 +7,20 @@ The script needs a cookie from Nicehash for authentication. Log into Nicehash an
 
 Tip: Grab the cookie from a chrome profile you do not use daily. It will be invalidated whenever you log out.
 
+The script expects these environment variables to be set:
+
+	COINBASE_ACCOUNT=coinbase-email@address.com 
+	GMAIL_USERNAME=your@gmail.com
+	GMAIL_PASSWORD=yourpassword
+
 ### Run
-	COINBASE_ACCOUNT=coinbase-emai@address.com python3 auto-withdraw.py
+
+
+Run
+
+	python3 auto-withdraw.py
 	
 ### Docker
-	docker build -t nicehash-autowithdraw .; docker run -v $(pwd)/data:/data -it -d -e COINBASE_ACCOUNT=coinbase-emai@address.com --name nh-auto  nicehash-autowithdraw
+
+	docker pull joernsn/nicehash-autowithdraw
+	docker run -v $(pwd)/data:/data -it -d --env-file vars.env --name nh-auto joernsn/nicehash-autowithdraw

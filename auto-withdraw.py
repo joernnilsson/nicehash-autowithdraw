@@ -1,6 +1,8 @@
 import requests, time, os, sys
 import logging
 import http.cookiejar
+import imaplib
+import re
 
 spin_wait = 60*10
 coinbase_account = os.getenv('COINBASE_ACCOUNT')
@@ -8,7 +10,6 @@ coinbase_account = os.getenv('COINBASE_ACCOUNT')
 # Optional
 gmail_username = os.getenv('GMAIL_USERNAME')
 gmail_password = os.getenv('GMAIL_PASSWORD')
-
 
 jar = "data/cookies.txt"
 
@@ -95,6 +96,7 @@ def spin():
         wd_resp = requests.post('https://www.nicehash.com/siteapi/wallet/withdraw_create', headers=wd_headers, cookies=cd, data=wd_data)
         
         logger.debug(wd_resp.text)
+        # {"withdraw_request_id":733146}
 
         if(wd_resp.status_code != 200):
             logger.error("Nicehash withdraw returned status %i", wd_resp.status_code)
@@ -107,11 +109,71 @@ def spin():
             logger.error("Nicehash withdraw error: %i, %s", error_code, error_messge)
             raise Exception("Nicehash withdraw error")
 
-    #if(gmail_username):
+        logger.info("Sleeping 25 sec to wait for email")
+        time.sleep(25)
+
+    # Try to confirm the withdrawal by reading the email
+    if(len(response.json()['withdraw_requests']) > 0 and gmail_username):
+        logger.info("Checking gmail inbox for confirmation code")
+
+        imap = imaplib.IMAP4_SSL('imap.gmail.com')
+        imap.login(gmail_username, gmail_password)
+        imap.select("inbox", readonly=True)
+        result, data = imap.search(None, "ALL")
+        ids = data[0]
+        id_list = ids.split()
+        id_list = list(reversed(id_list))
+        key = None
+        for mid in id_list:
+            result, data = imap.fetch(mid, "(RFC822)")
+            raw = data[0][1].decode("utf-8") 
+            if(raw.find("Withdrawal confirmation") > 0):
+                start = re.search(r"[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}", raw).start()
+                if(start>0):
+                    key = raw[start:start+36]
+                    logger.info("Found confirmation key in email: %s",key)
+                else:
+                    logger.error("Found confirmation email, but could not match th key")
+                    logger.debug(raw)
+                break
         
-    #    sleep(5)
+        if(key != None):
 
+            withdrawal_id = response.json()['withdraw_requests'][0]["id"]
 
+            # Confirm withdrawal
+            cf_headers = {
+                'Origin': 'https://www.nicehash.com',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Language': 'en-US,en;q=0.9,nb;q=0.8,sv;q=0.7',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.52 Safari/537.36',
+                'Content-Type': 'application/json',
+                'Accept': '*/*',
+                'Referer': 'https://www.nicehash.com/wallet',
+                'Connection': 'keep-alive',
+                'DNT': '1',
+            }
+
+            cf_data = '{"code":"'+key+'","id":"'+str(withdrawal_id)+'","twofa":""}'
+            logger.debug("Confirming withdrawal with data: %s", cf_data)
+            logger.info("Confirming withdrawal %i, to coinbase account: %s", withdrawal_id, coinbase_account)
+            cf_resp = requests.post('https://www.nicehash.com/siteapi/wallet/withdraw_confirm', headers=cf_headers, cookies=cd, data=cf_data)
+            
+            logger.debug(cf_resp.text)
+            #
+
+            if(cf_resp.status_code != 200):
+                logger.error("Nicehash withdraw confirmation returned status %i", cf_resp.status_code)
+                logger.debug(cf_resp.text)
+                raise Exception("Nicehash withdraw confirmation status not 200")
+
+            if("error_code" in cf_resp.json()):
+                error_code = int(cf_resp.json()['error_code'])
+                error_messge = cf_resp.json()['error']
+                logger.error("Nicehash withdraw confirmation error: %i, %s", error_code, error_messge)
+                raise Exception("Nicehash withdraw confirmation error")
+
+            
 if __name__ == "__main__":
     logger.info("Starting Nicehash auto withdraw for Coinbase account: %s", coinbase_account)
     while(True):
