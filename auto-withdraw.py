@@ -3,12 +3,17 @@ import logging
 import http.cookiejar
 
 spin_wait = 60*10
-coinbase_account = os.environ['COINBASE_ACCOUNT']
+coinbase_account = os.getenv('COINBASE_ACCOUNT')
+
+# Optional
+gmail_username = os.getenv('GMAIL_USERNAME')
+gmail_password = os.getenv('GMAIL_PASSWORD')
+
 
 jar = "data/cookies.txt"
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s",
     handlers=[
         logging.FileHandler("data/nicehash-autowithdraw.log"),
@@ -89,6 +94,8 @@ def spin():
         logger.info("Transferring %f BTC, to coinbase account: %s", nh_balance, coinbase_account)
         wd_resp = requests.post('https://www.nicehash.com/siteapi/wallet/withdraw_create', headers=wd_headers, cookies=cd, data=wd_data)
         
+        logger.debug(wd_resp.text)
+
         if(wd_resp.status_code != 200):
             logger.error("Nicehash withdraw returned status %i", wd_resp.status_code)
             logger.debug(wd_resp.text)
@@ -100,7 +107,10 @@ def spin():
             logger.error("Nicehash withdraw error: %i, %s", error_code, error_messge)
             raise Exception("Nicehash withdraw error")
 
-        # Success?
+    #if(gmail_username):
+        
+    #    sleep(5)
+
 
 if __name__ == "__main__":
     logger.info("Starting Nicehash auto withdraw for Coinbase account: %s", coinbase_account)
