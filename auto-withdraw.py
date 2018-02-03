@@ -32,6 +32,29 @@ def load_cookies(filename):
     with open(filename, 'rb') as f:
         return pickle.load(f)
 
+class NicehashException(Exception):
+    def __init__(self, response):
+        self.response = response
+        self.status_code = response.status_code
+    def __str__(self):
+        return 'NicehashException: %s %s' % (str(self.status_code), self.response.text)
+
+class NicehashAuthException(NicehashException): pass
+class NicehashServerErrorException(NicehashException): pass
+class NicehashClientErrorException(NicehashException): pass
+
+def verifyResponse(response):
+    data = response.json()
+    if (response.status_code >= 500 or ("status_code" in data and data["status_code"] >= 500)):
+        raise NicehashServerErrorException(response)
+    elif(response.status_code >= 400 or ("status_code" in data and data["status_code"] >= 400)):
+        raise NicehashAuthException(response)
+    elif("error_code" in data and data["error_code"] > 0):
+        raise NicehashClientErrorException(response)
+
+
+
+
 def spin():
 
     # Load cookies
@@ -58,24 +81,13 @@ def spin():
     #return
     response = requests.get('https://www.nicehash.com/siteapi/user/wallet', headers=headers, params=params, cookies=cd)
 
-
-    #print(response.status_code)
-    if(response.status_code != 200):
-        logger.error("Nicehash returned status %i", response.status_code)
-        raise Exception("Nicehash status not 200")
-
-    #print(response.json())
-
-    if('confirmed' not in response.json()):
-        print(response.json())
-        logger.error("Error getting confimed balance")
-        raise Exception("Error getting confimed balance")
-    
+    verifyResponse(response)
 
     nh_balance = float(response.json()['confirmed'])
     logger.info("Nicehash confirmed balance: %f mBTC", nh_balance*1000)
 
     # Make withdrawl to coinbase
+    request_made = False
     if(nh_balance > 0.002):
         wd_headers = {
             'Origin': 'https://www.nicehash.com',
@@ -98,22 +110,14 @@ def spin():
         logger.debug(wd_resp.text)
         # {"withdraw_request_id":733146}
 
-        if(wd_resp.status_code != 200):
-            logger.error("Nicehash withdraw returned status %i", wd_resp.status_code)
-            logger.debug(wd_resp.text)
-            raise Exception("Nicehash withdraw status not 200")
+        verifyResponse(wd_resp)
 
-        if("error_code" in wd_resp.json()):
-            error_code = int(wd_resp.json()['error_code'])
-            error_messge = wd_resp.json()['error']
-            logger.error("Nicehash withdraw error: %i, %s", error_code, error_messge)
-            raise Exception("Nicehash withdraw error")
-
+        request_made = True
         logger.info("Sleeping 25 sec to wait for email")
         time.sleep(25)
 
     # Try to confirm the withdrawal by reading the email
-    if(len(response.json()['withdraw_requests']) > 0 and gmail_username):
+    if((request_made or len(response.json()['withdraw_requests'])) > 0 and gmail_username):
         logger.info("Checking gmail inbox for confirmation code")
 
         imap = imaplib.IMAP4_SSL('imap.gmail.com')
@@ -160,24 +164,20 @@ def spin():
             cf_resp = requests.post('https://www.nicehash.com/siteapi/wallet/withdraw_confirm', headers=cf_headers, cookies=cd, data=cf_data)
             
             logger.debug(cf_resp.text)
-            #
-
-            if(cf_resp.status_code != 200):
-                logger.error("Nicehash withdraw confirmation returned status %i", cf_resp.status_code)
-                logger.debug(cf_resp.text)
-                raise Exception("Nicehash withdraw confirmation status not 200")
-
-            if("error_code" in cf_resp.json()):
-                error_code = int(cf_resp.json()['error_code'])
-                error_messge = cf_resp.json()['error']
-                logger.error("Nicehash withdraw confirmation error: %i, %s", error_code, error_messge)
-                raise Exception("Nicehash withdraw confirmation error")
+            
+            verifyResponse(cf_resp)
 
             
 if __name__ == "__main__":
     logger.info("Starting Nicehash auto withdraw for Coinbase account: %s", coinbase_account)
     while(True):
-        spin()
+        try:
+            spin()
+        except NicehashAuthException as e:
+            logger.error("Nicehash authentication error, quitting: %s", e)
+        except NicehashServerErrorException as e:
+            logger.error("Nicehash server error, retrying: %s", e)
+            
         logger.info("Sleeping for %i seconds", spin_wait)
         #break
         time.sleep(spin_wait)
