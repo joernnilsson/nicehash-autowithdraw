@@ -175,6 +175,7 @@ if __name__ == "__main__":
             spin()
         except NicehashAuthException as e:
             logger.error("Nicehash authentication error, quitting: %s", e)
+            raise e
         except NicehashServerErrorException as e:
             logger.error("Nicehash server error, retrying: %s", e)
             
