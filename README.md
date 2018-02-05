@@ -1,3 +1,5 @@
+[![Docker Build Status](https://img.shields.io/docker/build/joernsn/nicehash-autowithdraw.svg?style=flat-square)]()
+
 # Nicehash Auto Withdraw to Coinbase
 Automatically withdraws BTC funds from your Nicehash wallet to a Coinbase account
 
