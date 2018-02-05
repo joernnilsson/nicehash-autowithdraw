@@ -42,6 +42,7 @@ class NicehashException(Exception):
 class NicehashAuthException(NicehashException): pass
 class NicehashServerErrorException(NicehashException): pass
 class NicehashClientErrorException(NicehashException): pass
+class NicehashUnknownErrorException(NicehashException): pass
 
 def verifyResponse(response):
     data = response.json()
@@ -49,8 +50,10 @@ def verifyResponse(response):
         raise NicehashServerErrorException(response)
     elif(response.status_code >= 400 or ("status_code" in data and data["status_code"] >= 400)):
         raise NicehashAuthException(response)
-    elif("error_code" in data and data["error_code"] > 0):
+    elif("error_code" in data and int(data["error_code"]) > 0):
         raise NicehashClientErrorException(response)
+    elif("error" in data and int(data["error"]) < 0):
+        raise NicehashServerErrorException(response)
 
 
 
