@@ -45,10 +45,15 @@ class NicehashClientErrorException(NicehashException): pass
 class NicehashUnknownErrorException(NicehashException): pass
 
 def verifyResponse(response):
-    data = response.json()
-    if (response.status_code >= 500 or ("status_code" in data and data["status_code"] >= 500)):
+    if (response.status_code >= 500):
         raise NicehashServerErrorException(response)
-    elif(response.status_code >= 400 or ("status_code" in data and data["status_code"] >= 400)):
+    elif(response.status_code >= 400):
+        raise NicehashAuthException(response)
+
+    data = response.json()
+    if ("status_code" in data and data["status_code"] >= 500):
+        raise NicehashServerErrorException(response)
+    elif("status_code" in data and data["status_code"] >= 400):
         raise NicehashAuthException(response)
     elif("error_code" in data and int(data["error_code"]) > 0):
         raise NicehashClientErrorException(response)
@@ -90,7 +95,7 @@ def spin():
     logger.info("Nicehash confirmed balance: %f mBTC", nh_balance*1000)
 
     # Make withdrawl to coinbase
-    request_made = False
+    withdraw_request_id = None
     if(nh_balance > 0.002):
         wd_headers = {
             'Origin': 'https://www.nicehash.com',
@@ -104,7 +109,6 @@ def spin():
             'DNT': '1',
         }
 
-
         wd_data = '{"address":"'+coinbase_account+'","amount":"'+str(nh_balance)+'","type":1}'
         logger.debug("Making withdrawl with data: %s", wd_data)
         logger.info("Transferring %f BTC, to coinbase account: %s", nh_balance, coinbase_account)
@@ -115,12 +119,15 @@ def spin():
 
         verifyResponse(wd_resp)
 
-        request_made = True
+        withdraw_request_id = wd_resp.json()['withdraw_request_id']
         logger.info("Sleeping 25 sec to wait for email")
         time.sleep(25)
 
+    if(withdraw_request_id == None and len(response.json()['withdraw_requests']) > 0):
+            withdraw_request_id = response.json()['withdraw_requests'][0]["id"]
+
     # Try to confirm the withdrawal by reading the email
-    if((request_made or len(response.json()['withdraw_requests'])) > 0 and gmail_username):
+    if(withdraw_request_id != None and gmail_username):
         logger.info("Checking gmail inbox for confirmation code")
 
         imap = imaplib.IMAP4_SSL('imap.gmail.com')
@@ -146,7 +153,6 @@ def spin():
         
         if(key != None):
 
-            withdrawal_id = response.json()['withdraw_requests'][0]["id"]
 
             # Confirm withdrawal
             cf_headers = {
@@ -161,9 +167,9 @@ def spin():
                 'DNT': '1',
             }
 
-            cf_data = '{"code":"'+key+'","id":"'+str(withdrawal_id)+'","twofa":""}'
+            cf_data = '{"code":"'+key+'","id":"'+str(withdraw_request_id)+'","twofa":""}'
             logger.debug("Confirming withdrawal with data: %s", cf_data)
-            logger.info("Confirming withdrawal %i, to coinbase account: %s", withdrawal_id, coinbase_account)
+            logger.info("Confirming withdrawal %i, to coinbase account: %s", withdraw_request_id, coinbase_account)
             cf_resp = requests.post('https://www.nicehash.com/siteapi/wallet/withdraw_confirm', headers=cf_headers, cookies=cd, data=cf_data)
             
             logger.debug(cf_resp.text)
@@ -178,6 +184,8 @@ if __name__ == "__main__":
             spin()
         except NicehashAuthException as e:
             logger.error("Nicehash authentication error, quitting: %s", e)
+            logger.info("Waiting %s seconds before exit/restart to avoid fast loops", spin_wait)
+            time.sleep(spin_wait)
             raise e
         except NicehashServerErrorException as e:
             logger.error("Nicehash server error, retrying: %s", e)
