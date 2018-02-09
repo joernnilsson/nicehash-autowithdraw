@@ -6,6 +6,7 @@ RUN apt-get install -y python3
 RUN apt-get install -y python3-requests
 
 COPY auto-withdraw.py /auto-withdraw.py
+COPY nicehash_site_api.py /nicehash_site_api.py
 
 VOLUME ["/data"]
 
