@@ -33,9 +33,9 @@ class Client:
         data = '{"address":"'+coinbase_account+'","amount":"'+str(amount)+'","type":1}'
         return self.post('https://www.nicehash.com/siteapi/wallet/withdraw_create', data=data)
 
-    def withdrawal_confirm(self, withdraw_request_id, key):
+    def withdrawal_confirm(self, withdraw_request_id, key1, key2):
 
-        data = '{"code":"'+key+'","id":"'+str(withdraw_request_id)+'","twofa":""}'
+        data = '{"code":"'+key1+'-'+key2+'","id":"'+str(withdraw_request_id)+'","twofa":""}'
         return self.post('https://www.nicehash.com/siteapi/wallet/withdraw_confirm', data=data)
 
 

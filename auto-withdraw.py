@@ -63,27 +63,45 @@ def spin():
         ids = data[0]
         id_list = ids.split()
         id_list = list(reversed(id_list))
-        key = None
+        key1 = None
+        key2 = None
+
         for mid in id_list:
             result, data = imap.fetch(mid, "(RFC822)")
             raw = data[0][1].decode("utf-8") 
-            if(raw.find("Withdrawal confirmation") > 0):
-                start = re.search(r"[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}", raw).start()
+            if(raw.find("Confirmation code 1") > 0):
+                start = re.search(r"[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}", raw).start()
                 if(start>0):
-                    key = raw[start:start+36]
-                    logger.info("Found confirmation key in email: %s",key)
+                    key1 = raw[start:start+18]
+                    logger.info("Found confirmation key 1 in email: %s",key1)
                 else:
-                    logger.error("Found confirmation email, but could not match th key")
+                    logger.error("Found confirmation 1 email, but could not match th key1")
                     logger.debug(raw)
+                    
+            if(raw.find("Confirmation code 2") > 0):
+                start = re.search(r"[a-z0-9]{4}-[a-z0-9]{12}", raw).start()
+                if(start>0):
+                    key2 = raw[start:start+17]
+                    logger.info("Found confirmation key 2 in email: %s",key2)
+                else:
+                    logger.error("Found confirmation 2 email, but could not match th key2")
+                    logger.debug(raw)
+
+            if(key1 != None and key2 != None):
                 break
-        
-        if(key != None):
+
+        if(key1 != None and key2 != None):
 
             # Confirm withdrawal
             logger.info("Confirming withdrawal %i, to coinbase account: %s", withdraw_request_id, coinbase_account)
-            api.withdrawal_confirm(withdraw_request_id, key)
+            api.withdrawal_confirm(withdraw_request_id, key1, key2)
 
-            
+
+def abort(e):
+    logger.info("Waiting %s seconds before exit/restart to avoid fast loops", spin_wait)
+    time.sleep(spin_wait)
+    raise e
+
 if __name__ == "__main__":
     logger.info("Starting Nicehash auto withdraw for Coinbase account: %s", coinbase_account)
     while(True):
@@ -91,22 +109,18 @@ if __name__ == "__main__":
             spin()
         except nicehash_site_api.NicehashAuthException as e:
             logger.error("Nicehash authentication error, quitting: %s", e)
-            logger.info("Waiting %s seconds before exit/restart to avoid fast loops", spin_wait)
-            time.sleep(spin_wait)
-            raise e
+            abort(e)
+
         except nicehash_site_api.NicehashClientErrorException as e:
             logger.error("Nicehash client error, quitting: %s", e)
-            logger.info("Waiting %s seconds before exit/restart to avoid fast loops", spin_wait)
-            time.sleep(spin_wait)
-            raise e
+            abort(e)
+
         except nicehash_site_api.NicehashServerErrorException as e:
             logger.error("Nicehash server error, retrying: %s", e)
+
         except Exception as e:
             logger.error("Unknown error, quitting: %s", e)
-            logger.info("Waiting %s seconds before exit/restart to avoid fast loops", spin_wait)
-            time.sleep(spin_wait)
-            raise e
+            abort(e)
             
         logger.info("Sleeping for %i seconds", spin_wait)
-        #break
         time.sleep(spin_wait)
