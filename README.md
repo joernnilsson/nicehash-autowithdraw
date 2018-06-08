@@ -19,9 +19,11 @@ Run
 
 	python3 nicehash_auto_withdraw.py email@gmail.com
 
-Where the email address is the target coinbase account.
+Where the email address is the target coinbase account. Email address can also be set as environment variable:
 	
+	COINBASE_ACCOUNT=email@gmail.com python3 nicehash_auto_withdraw.py 
+
 ### Docker
 
 	docker pull joernsn/nicehash-autowithdraw
-	docker run -v $(pwd)/data:/data -it -d --name nh-auto joernsn/nicehash-autowithdraw
+	docker run -v $(pwd)/data:/data -it -d -e COINBASE_ACCOUNT=email@gmail.com --name nh-auto joernsn/nicehash-autowithdraw

@@ -8,12 +8,15 @@ import nicehash_site_api
 spin_wait = 60*10
 
 # Optional
-
-if(len(sys.argv) != 2):
+coinbase_account = ""
+if "COINBASE_ACCOUNT" in os.environ:
+    coinbase_account = os.environ["COINBASE_ACCOUNT"]
+elif(len(sys.argv) >= 2):
+    coinbase_account = sys.argv[1]
+elif(len(sys.argv) != 2):
     print("Usage: %s coinbase.email@account.com" % (sys.argv[0]))
     sys.exit(1)
 
-coinbase_account = sys.argv[1]
 
 jar = "data/cookies.txt"
 
