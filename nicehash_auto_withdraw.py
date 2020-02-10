@@ -3,22 +3,10 @@ import logging
 import http.cookiejar
 import imaplib
 import re
-import nicehash_site_api
+import nicehash
+import json
 
 spin_wait = 60*10
-
-# Optional
-coinbase_account = ""
-if "COINBASE_ACCOUNT" in os.environ:
-    coinbase_account = os.environ["COINBASE_ACCOUNT"]
-elif(len(sys.argv) >= 2):
-    coinbase_account = sys.argv[1]
-elif(len(sys.argv) != 2):
-    print("Usage: %s coinbase.email@account.com" % (sys.argv[0]))
-    sys.exit(1)
-
-
-jar = "data/cookies.txt"
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -30,26 +18,35 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def spin():
+def spin(coinbase_account, organisation_id, key, secret):
 
-    # Load cookies
-    cj = http.cookiejar.MozillaCookieJar(jar)
-    cj.load(ignore_expires=True)
-    cookies = {c.name:c.value for c in cj}
-    #print(cj)
+    host = 'https://api2.nicehash.com'
 
-    api = nicehash_site_api.Client(cookies)
-    wallet = api.wallet()
+    private_api = nicehash.private_api(host, organisation_id, key, secret, True)
 
-    nh_balance = float(wallet['confirmed'])
+    my_btc_account = private_api.get_accounts_for_currency("BTC")
+
+    nh_balance = my_btc_account['balance']
+
+
+    nh_balance = float(my_btc_account['balance'])
     logger.info("Nicehash confirmed balance: %f mBTC", nh_balance*1000)
 
     # Make withdrawl to coinbase
     withdraw_request_id = None
     if(nh_balance > 0.002):
 
-        logger.info("Transferring %f BTC, to coinbase account: %s", nh_balance, coinbase_account)
-        api.withdrawal_request(coinbase_account, nh_balance)
+        # Get address ids
+        withdrawal_addresses = private_api.get_withdrawal_addresses("BTC", 100, 0)
+
+        print(withdrawal_addresses)
+
+        for wa in withdrawal_addresses['list']:
+            if wa["type"]["code"] == "COINBASE" and wa["address"] == coinbase_account:
+                logger.info("Transferring %f BTC, to coinbase account: %s", nh_balance, coinbase_account)
+                res = private_api.withdraw_request(wa["id"], nh_balance, "BTC")
+                print(res)
+                break
 
 
 def abort(e):
@@ -58,20 +55,28 @@ def abort(e):
     raise e
 
 if __name__ == "__main__":
+
+    import argparse
+    parser = argparse.ArgumentParser(description='Withdraw BTC funds to Coinbase account')
+    parser.add_argument("--coinbase-account", '-c', help='Coinbase account email address [COINBASE_ACCOUNT]')
+    parser.add_argument("--nicehash-organization", '-o', help='Nicehash organization id [NICEHASH_ORGANIZATION]')
+    parser.add_argument("--nicehash-key", '-k', help='Nicehash API key [NICEHASH_API_KEY]')
+    parser.add_argument("--nicehash-secret", '-s', help='Nicehash API secret [NICEHASH_API_KEY]')
+
+    args = parser.parse_args()
+
+    coinbase_account = args.coinbase_account if args.coinbase_account else os.environ["COINBASE_ACCOUNT"]
+    nicehash_organization = args.nicehash_organization if args.nicehash_secret else os.environ["NICEHASH_ORGANIZATION"]
+    nicehash_key = args.nicehash_key if args.nicehash_key else os.environ["NICEHASH_API_KEY"]
+    nicehash_secret = args.nicehash_secret if args.nicehash_secret else os.environ["NICEHASH_API_KEY"]
+
+    if not(coinbase_account and nicehash_organization and nicehash_key and nicehash_secret):
+        parser.error("All parameters are required")        
+
     logger.info("Starting Nicehash auto withdraw for Coinbase account: %s", coinbase_account)
     while(True):
         try:
-            spin()
-        except nicehash_site_api.NicehashAuthException as e:
-            logger.error("Nicehash authentication error, quitting: %s", e)
-            abort(e)
-
-        except nicehash_site_api.NicehashClientErrorException as e:
-            logger.error("Nicehash client error, quitting: %s", e)
-            abort(e)
-
-        except nicehash_site_api.NicehashServerErrorException as e:
-            logger.error("Nicehash server error, retrying: %s", e)
+            spin(coinbase_account, nicehash_organization, nicehash_key, nicehash_secret)
 
         except Exception as e:
             logger.error("Unknown error, quitting: %s", e)
