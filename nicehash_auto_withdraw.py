@@ -73,7 +73,7 @@ if __name__ == "__main__":
     coinbase_account = args.coinbase_account if args.coinbase_account else env("COINBASE_ACCOUNT")
     nicehash_organization = args.nicehash_organization if args.nicehash_organization else env("NICEHASH_ORGANIZATION")
     nicehash_api_key = args.nicehash_api_key if args.nicehash_api_key else env("NICEHASH_API_KEY")
-    nicehash_api_secret = args.nicehash_api_secret if nicehash_api_secret.nicehash_secret else env("NICEHASH_API_SECRET")
+    nicehash_api_secret = args.nicehash_api_secret if args.nicehash_api_secret else env("NICEHASH_API_SECRET")
 
     if not(coinbase_account and nicehash_organization and nicehash_key and nicehash_secret):
         parser.error("All parameters are required")        
