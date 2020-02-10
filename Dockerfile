@@ -1,9 +1,9 @@
 #Download base image ubuntu 16.04
-FROM debian:jessie-slim
+FROM debian:stretch-slim
 
 RUN apt-get update
-RUN apt-get install -y python3
-RUN apt-get install -y python3-requests
+RUN apt-get install -y python3 python3-pip
+RUN apt-get install -y python3-requests 
 
 COPY nicehash_auto_withdraw.py /nicehash_auto_withdraw.py
 COPY nicehash.py /nicehash.py
