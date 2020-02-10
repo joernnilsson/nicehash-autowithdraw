@@ -75,7 +75,7 @@ if __name__ == "__main__":
     nicehash_api_key = args.nicehash_api_key if args.nicehash_api_key else env("NICEHASH_API_KEY")
     nicehash_api_secret = args.nicehash_api_secret if args.nicehash_api_secret else env("NICEHASH_API_SECRET")
 
-    if not(coinbase_account and nicehash_organization and nicehash_key and nicehash_secret):
+    if not(coinbase_account and nicehash_organization and nicehash_api_key and nicehash_api_secret):
         parser.error("All parameters are required")        
 
     logger.info("Starting Nicehash auto withdraw for Coinbase account: %s", coinbase_account)
