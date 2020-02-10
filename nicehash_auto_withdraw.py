@@ -54,21 +54,27 @@ def abort(e):
     time.sleep(spin_wait)
     raise e
 
+def env(key):
+    if key in os.environ:
+        return os.environ[key]
+    else:
+        return None
+
 if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser(description='Withdraw BTC funds to Coinbase account')
     parser.add_argument("--coinbase-account", '-c', help='Coinbase account email address [COINBASE_ACCOUNT]')
     parser.add_argument("--nicehash-organization", '-o', help='Nicehash organization id [NICEHASH_ORGANIZATION]')
-    parser.add_argument("--nicehash-key", '-k', help='Nicehash API key [NICEHASH_API_KEY]')
-    parser.add_argument("--nicehash-secret", '-s', help='Nicehash API secret [NICEHASH_API_KEY]')
+    parser.add_argument("--nicehash-api-key", '-k', help='Nicehash API key [NICEHASH_API_KEY]')
+    parser.add_argument("--nicehash-api-secret", '-s', help='Nicehash API secret [NICEHASH_API_SECRET]')
 
     args = parser.parse_args()
 
-    coinbase_account = args.coinbase_account if args.coinbase_account else os.environ["COINBASE_ACCOUNT"]
-    nicehash_organization = args.nicehash_organization if args.nicehash_secret else os.environ["NICEHASH_ORGANIZATION"]
-    nicehash_key = args.nicehash_key if args.nicehash_key else os.environ["NICEHASH_API_KEY"]
-    nicehash_secret = args.nicehash_secret if args.nicehash_secret else os.environ["NICEHASH_API_KEY"]
+    coinbase_account = args.coinbase_account if args.coinbase_account else env("COINBASE_ACCOUNT")
+    nicehash_organization = args.nicehash_organization if args.nicehash_organization else env("NICEHASH_ORGANIZATION")
+    nicehash_api_key = args.nicehash_api_key if args.nicehash_api_key else env("NICEHASH_API_KEY")
+    nicehash_api_secret = args.nicehash_api_secret if nicehash_api_secret.nicehash_secret else env("NICEHASH_API_SECRET")
 
     if not(coinbase_account and nicehash_organization and nicehash_key and nicehash_secret):
         parser.error("All parameters are required")        
@@ -76,7 +82,7 @@ if __name__ == "__main__":
     logger.info("Starting Nicehash auto withdraw for Coinbase account: %s", coinbase_account)
     while(True):
         try:
-            spin(coinbase_account, nicehash_organization, nicehash_key, nicehash_secret)
+            spin(coinbase_account, nicehash_organization, nicehash_api_key, nicehash_api_secret)
 
         except Exception as e:
             logger.error("Unknown error, quitting: %s", e)
