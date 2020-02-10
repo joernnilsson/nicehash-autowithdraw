@@ -8,6 +8,4 @@ RUN apt-get install -y python3-requests
 COPY nicehash_auto_withdraw.py /nicehash_auto_withdraw.py
 COPY nicehash.py /nicehash.py
 
-VOLUME ["/data"]
-
 CMD ["/usr/bin/python3", "/nicehash_auto_withdraw.py"]

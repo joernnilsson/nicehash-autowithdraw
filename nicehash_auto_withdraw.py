@@ -12,7 +12,6 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(filename)-20.20s:%(lineno)4d] [%(levelname)-5.5s]  %(message)s",
     handlers=[
-        logging.FileHandler("data/nicehash-autowithdraw.log"),
         logging.StreamHandler(sys.stdout)
     ])
 

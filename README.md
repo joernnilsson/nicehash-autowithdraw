@@ -35,4 +35,4 @@ Where the email address is the target coinbase account. Email address can also b
 ### Docker
 
 	docker pull joernsn/nicehash-autowithdraw
-	docker run -v $(pwd)/data:/data -it -d -e COINBASE_ACCOUNT=email@gmail.com -e NICEHASH_ORGANIZATION=... -e NICEHASH_API_KEY=... -e NICEHASH_API_SECRET=...  --name nh-auto joernsn/nicehash-autowithdraw
+	docker run -it -d -e COINBASE_ACCOUNT=email@gmail.com -e NICEHASH_ORGANIZATION=... -e NICEHASH_API_KEY=... -e NICEHASH_API_SECRET=...  --name nh-auto joernsn/nicehash-autowithdraw
