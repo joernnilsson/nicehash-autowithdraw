@@ -132,10 +132,8 @@ class private_api:
 
         if self.verbose:
             print(method, url)
-            print(message)
 
         if body:
-            print(body_json)
             response = s.request(method, url, data=body_json)
         else:
             response = s.request(method, url)
@@ -164,11 +162,10 @@ class private_api:
         return algo_setting
 
     def get_accounts(self):
-        query = "extendedResponse=true"
-        return self.request('GET', '/main/api/v2/accounting/accounts2', query, None)
+        return self.request('GET', '/main/api/v2/accounting/accounts2/', '', None)
 
     def get_accounts_for_currency(self, currency):
-        return self.request('GET', '/main/api/v2/accounting/account/' + currency, '', None)
+        return self.request('GET', '/main/api/v2/accounting/account2/' + currency, '', None)
 
     def get_withdrawal_addresses(self, currency, size, page):
 
@@ -182,11 +179,10 @@ class private_api:
     def withdraw_request(self, address_id, amount, currency):
         withdraw_data = {
             "withdrawalAddressId": address_id,
-            "amount": str(amount),
-            "currency": currency,
-            "fromOwnerId": self.organisation_id
+            "amount": amount,
+            "currency": currency
         }
-        return self.request('POST', '/main/api/v2/accounting/withdrawal', '', withdraw_data)
+        return self.request('POST', '/main/api/v2/accounting/withdrawal/', '', withdraw_data)
 
     def get_my_active_orders(self, algorithm, market, limit):
 
