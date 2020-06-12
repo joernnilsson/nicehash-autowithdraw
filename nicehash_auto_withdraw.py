@@ -25,10 +25,7 @@ def spin(coinbase_account, organisation_id, key, secret, dry_run):
 
     my_btc_account = private_api.get_accounts_for_currency("BTC")
 
-    nh_balance = my_btc_account['balance']
-
-
-    nh_balance = float(my_btc_account['balance'])
+    nh_balance = float(my_btc_account['available'])
     logger.info("Nicehash confirmed balance: %f mBTC", nh_balance*1000)
 
     # Make withdrawl to coinbase
@@ -88,7 +85,7 @@ if __name__ == "__main__":
 
         except Exception as e:
             logger.error("Unknown error, quitting: %s", e)
-            abort(e)
+            #abort(e)
             
         logger.info("Sleeping for %i seconds", spin_wait)
         time.sleep(spin_wait)
