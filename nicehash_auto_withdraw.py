@@ -17,7 +17,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def spin(coinbase_account, organisation_id, key, secret):
+def spin(coinbase_account, organisation_id, key, secret, dry_run):
 
     host = 'https://api2.nicehash.com'
 
@@ -43,6 +43,8 @@ def spin(coinbase_account, organisation_id, key, secret):
         for wa in withdrawal_addresses['list']:
             if wa["type"]["code"] == "COINBASE" and wa["address"] == coinbase_account:
                 logger.info("Transferring %f BTC, to coinbase account: %s", nh_balance, coinbase_account)
+                if(dry_run):
+                    break
                 res = private_api.withdraw_request(wa["id"], nh_balance, "BTC")
                 print(res)
                 break
@@ -67,6 +69,7 @@ if __name__ == "__main__":
     parser.add_argument("--nicehash-organization", '-o', help='Nicehash organization id [NICEHASH_ORGANIZATION]')
     parser.add_argument("--nicehash-api-key", '-k', help='Nicehash API key [NICEHASH_API_KEY]')
     parser.add_argument("--nicehash-api-secret", '-s', help='Nicehash API secret [NICEHASH_API_SECRET]')
+    parser.add_argument("--dry-run", '-d', help='Don\'t commit any changes', action='store_true')
 
     args = parser.parse_args()
 
@@ -81,7 +84,7 @@ if __name__ == "__main__":
     logger.info("Starting Nicehash auto withdraw for Coinbase account: %s", coinbase_account)
     while(True):
         try:
-            spin(coinbase_account, nicehash_organization, nicehash_api_key, nicehash_api_secret)
+            spin(coinbase_account, nicehash_organization, nicehash_api_key, nicehash_api_secret, args.dry_run)
 
         except Exception as e:
             logger.error("Unknown error, quitting: %s", e)
